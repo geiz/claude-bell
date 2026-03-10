@@ -2,13 +2,9 @@
 
 Sound notifications for Claude Code — know when Claude is done without watching your terminal.
 
+Works on macOS and Linux (including WSL).
+
 ## Install
-
-### Homebrew (macOS/Linux)
-
-```bash
-brew install geiz/tap/claude-bell
-```
 
 ### From source
 
