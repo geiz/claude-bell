@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # claude-bell installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/USER/claude-bell/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/geiz/claude-bell/main/install.sh | bash
 
 PREFIX="${CLAUDE_BELL_PREFIX:-/usr/local}"
-REPO="https://github.com/USER/claude-bell"
+REPO="https://github.com/geiz/claude-bell"
 BRANCH="main"
 
 printf 'Installing claude-bell to %s...\n' "${PREFIX}"

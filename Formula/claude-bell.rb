@@ -1,7 +1,7 @@
 class ClaudeBell < Formula
   desc "Sound notifications for Claude Code"
-  homepage "https://github.com/USER/claude-bell"
-  url "https://github.com/USER/claude-bell/archive/refs/tags/v0.1.0.tar.gz"
+  homepage "https://github.com/geiz/claude-bell"
+  url "https://github.com/geiz/claude-bell/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "PLACEHOLDER"
   license "MIT"
 
