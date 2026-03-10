@@ -136,5 +136,6 @@ make uninstall
 
 ## Contributors
 
-- [David S](https://github.com/geiz) — creator
-- [Claude](https://claude.ai) — co-author
+- [David S](https://github.com/geiz)
+
+Built with [Claude Code](https://claude.ai/claude-code)
