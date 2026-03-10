@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Resolve script location (follow symlinks)
+_cb_resolve_dir() {
+    local src="${BASH_SOURCE[0]}"
+    while [[ -L "${src}" ]]; do
+        local dir
+        dir="$(cd -P "$(dirname "${src}")" && pwd)"
+        src="$(readlink "${src}")"
+        [[ "${src}" != /* ]] && src="${dir}/${src}"
+    done
+    cd -P "$(dirname "${src}")" && pwd
+}
+
+CLAUDE_BELL_BIN_DIR="$(_cb_resolve_dir)"
+CLAUDE_BELL_HOME="${CLAUDE_BELL_BIN_DIR}/.."
+CLAUDE_BELL_LIB_DIR="${CLAUDE_BELL_HOME}/lib/claude-bell"
+
+# Source library files
+source "${CLAUDE_BELL_LIB_DIR}/config.sh"
+source "${CLAUDE_BELL_LIB_DIR}/audio.sh"
+source "${CLAUDE_BELL_LIB_DIR}/help.sh"
+
+# Load configuration
+cb_load_config
+
+# --- Subcommand dispatch ---
+
+case "${1:-}" in
+    --version|-V)
+        cb_version
+        exit 0
+        ;;
+    --help|-h)
+        cb_help
+        exit 0
+        ;;
+    config)
+        shift
+        cb_config_cmd "$@"
+        exit $?
+        ;;
+    test-sound)
+        shift
+        sound_name="${1:-default}"
+        resolved="$(cb_resolve_sound "${sound_name}" "done")"
+        backend="$(cb_detect_backend)"
+        printf 'Backend: %s\n' "${backend}"
+        printf 'Sound:   %s → %s\n' "${sound_name}" "${resolved}"
+        printf 'Pitch:   %s\n' "${CLAUDE_BELL_PITCH}"
+        printf 'Playing...\n'
+        cb_play "${resolved}"
+        exit 0
+        ;;
+esac
+
+# --- Main: run claude and play sound on completion ---
+
+# Check claude is available
+if ! command -v claude &>/dev/null 2>&1; then
+    printf 'Error: "claude" command not found in PATH.\n' >&2
+    printf 'Install Claude Code first: https://docs.anthropic.com/en/docs/claude-code\n' >&2
+    exit 127
+fi
+
+# Play the appropriate sound and exit
+_cb_finish() {
+    local exit_code="${1}"
+    local start="${2}"
+    local end
+    end="$(date +%s)"
+    local duration=$(( end - start ))
+
+    # Check mute
+    if [[ "${CLAUDE_BELL_MUTE}" == "true" ]]; then
+        return
+    fi
+
+    # Check minimum duration
+    if [[ "${duration}" -lt "${CLAUDE_BELL_MIN_DURATION}" ]]; then
+        return
+    fi
+
+    # Resolve and play appropriate sound
+    if [[ "${exit_code}" -eq 0 ]]; then
+        local sound
+        sound="$(cb_resolve_sound "${CLAUDE_BELL_SOUND}" "done")"
+        cb_play "${sound}"
+        cb_notify "Claude finished" "Command completed successfully"
+    else
+        local sound
+        sound="$(cb_resolve_sound "${CLAUDE_BELL_ERROR_SOUND}" "error")"
+        cb_play "${sound}"
+        cb_notify "Claude failed" "Command exited with code ${exit_code}"
+    fi
+}
+
+# Record start time
+_cb_start="$(date +%s)"
+
+# Trap signals so we still play sound if claude is killed / Ctrl+C'd
+trap '_cb_finish 130 "${_cb_start}"; exit 130' INT
+trap '_cb_finish 143 "${_cb_start}"; exit 143' TERM
+
+# Run claude with all arguments, preserving exit code
+set +e
+command claude "$@"
+_cb_exit=$?
+set -e
+
+# Clear traps — we'll handle it directly now
+trap - INT TERM
+
+_cb_finish "${_cb_exit}" "${_cb_start}"
+exit "${_cb_exit}"

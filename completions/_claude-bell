@@ -1,0 +1,71 @@
+#compdef claude-bell
+
+_claude_bell_config_keys=(
+    'CLAUDE_BELL_SOUND:Sound on success'
+    'CLAUDE_BELL_ERROR_SOUND:Sound on error'
+    'CLAUDE_BELL_VOLUME:Volume 0-100'
+    'CLAUDE_BELL_MUTE:Mute all sounds'
+    'CLAUDE_BELL_BACKEND:Audio backend'
+    'CLAUDE_BELL_NOTIFY:Desktop notifications'
+    'CLAUDE_BELL_MIN_DURATION:Min duration before sound'
+)
+
+_claude_bell_sounds() {
+    local sounds=(default bell none done error)
+    # macOS system sounds
+    if [[ -d "/System/Library/Sounds" ]]; then
+        local f
+        for f in /System/Library/Sounds/*.aiff(N); do
+            sounds+=("${f:t:r}")
+        done
+    fi
+    compadd -a sounds
+}
+
+_claude_bell_config() {
+    local -a actions=(
+        'init:Create config file with defaults'
+        'set:Set a config value'
+        'get:Get a config value'
+        'list:Show all current values'
+        'path:Print config file path'
+        'edit:Open config in editor'
+    )
+    _describe 'config action' actions
+}
+
+_claude_bell() {
+    local state
+
+    _arguments -C \
+        '1:command:->cmd' \
+        '*::arg:->args'
+
+    case "${state}" in
+        cmd)
+            local -a commands=(
+                'config:Manage configuration'
+                'test-sound:Test sound playback'
+                '--help:Show help'
+                '--version:Show version'
+            )
+            _describe 'command' commands
+            ;;
+        args)
+            case "${words[1]}" in
+                config)
+                    if (( CURRENT == 2 )); then
+                        _claude_bell_config
+                    elif (( CURRENT == 3 )) && [[ "${words[2]}" == (set|get) ]]; then
+                        _describe 'config key' _claude_bell_config_keys
+                    fi
+                    ;;
+                test-sound)
+                    _claude_bell_sounds
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_claude_bell "$@"

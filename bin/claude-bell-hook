@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# claude-bell-hook: Plays a sound when Claude finishes responding.
+# Designed to be called by Claude Code's Stop hook.
+# Receives JSON on stdin with session info.
+
+_CB_LOG="/tmp/claude-bell-hook.log"
+
+_cb_log() {
+    printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*" >> "${_CB_LOG}"
+}
+
+_cb_log "Hook fired. PID=$$"
+
+# Resolve script location
+_cb_dir="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
+CLAUDE_BELL_HOME="${_cb_dir}/.."
+
+_cb_log "HOME=${CLAUDE_BELL_HOME}"
+
+source "${CLAUDE_BELL_HOME}/lib/claude-bell/config.sh"
+source "${CLAUDE_BELL_HOME}/lib/claude-bell/audio.sh"
+
+cb_load_config
+
+_cb_log "MUTE=${CLAUDE_BELL_MUTE} SOUND=${CLAUDE_BELL_SOUND} PITCH=${CLAUDE_BELL_PITCH} BACKEND=$(cb_detect_backend)"
+
+# Check mute
+[[ "${CLAUDE_BELL_MUTE}" == "true" ]] && { _cb_log "Muted, skipping"; exit 0; }
+
+# Play the success sound (hook only fires on successful completion, not interrupts)
+sound="$(cb_resolve_sound "${CLAUDE_BELL_SOUND}" "done")"
+_cb_log "Resolved sound: ${sound}"
+
+cb_play "${sound}"
+_cb_log "Play dispatched"
+
+cb_notify "Claude responded" "Ready for your input"
+
+exit 0
